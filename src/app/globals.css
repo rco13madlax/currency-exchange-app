@@ -24,3 +24,71 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* 基础重置，避免冲突 */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 简化的用户选择控制 - 移除复杂的选择器 */
+body, div, span, button, p, h1, h2, h3, h4, h5, h6 {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+}
+
+/* 输入框基础样式 - 移除 !important 避免冲突 */
+input, textarea {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  user-select: text;
+  -webkit-appearance: none;
+  appearance: none;
+  outline: none;
+  font-size: 16px; /* 防止移动端放大 */
+}
+
+/* 简化的输入框焦点样式 */
+input:focus, textarea:focus {
+  outline: none;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* 移除number输入框的spinner */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* 动画 */
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-slideUp {
+  animation: slideUp 0.3s ease-out;
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out;
+}

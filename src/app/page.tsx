@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback, memo } from 'react'
-import { ArrowUpDown, TrendingUp, Calculator, Globe, RefreshCw, Menu, Search, Star, Clock, MoreHorizontal, Bell, User, Settings, CreditCard, Shield, HelpCircle, LogOut, Eye, EyeOff, ChevronRight } from 'lucide-react'
+import { ArrowUpDown, TrendingUp, Calculator, Globe, RefreshCw, Search, Star, Clock, MoreHorizontal, Bell, User, Settings, CreditCard, Shield, HelpCircle, LogOut, Eye, EyeOff, ChevronRight } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { useAuth } from '@/hooks/useAuth'
 import { supabase, currencies } from '@/lib/supabase'
@@ -17,8 +17,8 @@ interface ChartData {
   rate: number
 }
 
-// 🔥 关键修复：将模态框组件提取到外部，使用 memo 优化
-const LoginModal = memo(({ 
+// 🔥 修复：为模态框组件添加显示名称
+const LoginModal = memo(function LoginModal({ 
   showLogin, 
   loginForm, 
   authError, 
@@ -40,7 +40,7 @@ const LoginModal = memo(({
   onLogin: () => void
   onClose: () => void
   onSwitchToRegister: () => void
-}) => {
+}) {
   if (!showLogin) return null
 
   return (
@@ -133,7 +133,7 @@ const LoginModal = memo(({
   )
 })
 
-const RegisterModal = memo(({
+const RegisterModal = memo(function RegisterModal({
   showRegister,
   registerForm,
   authError,
@@ -155,7 +155,7 @@ const RegisterModal = memo(({
   onRegister: () => void
   onClose: () => void
   onSwitchToLogin: () => void
-}) => {
+}) {
   if (!showRegister) return null
 
   return (
@@ -264,12 +264,12 @@ const RegisterModal = memo(({
 })
 
 // 货币选择器组件
-const CurrencyPicker = memo(({ isVisible, onSelect, onClose, selectedCurrency }: {
+const CurrencyPicker = memo(function CurrencyPicker({ isVisible, onSelect, onClose, selectedCurrency }: {
   isVisible: boolean
   onSelect: (code: string) => void
   onClose: () => void
   selectedCurrency: string
-}) => {
+}) {
   if (!isVisible) return null
 
   return (
@@ -407,7 +407,7 @@ export default function CurrencyExchangeApp() {
   }
 
   // 转换货币
-  const convertCurrency = async () => {
+  const convertCurrency = useCallback(async () => {
     if (!amount || isNaN(parseFloat(amount))) return
     
     setLoading(true)
@@ -434,9 +434,9 @@ export default function CurrencyExchangeApp() {
     }
     
     setLoading(false)
-  }
+  }, [amount, fromCurrency, toCurrency, user])
 
-  // 🔥 关键修复：稳定的事件处理函数
+  // 🔥 修复：稳定的事件处理函数
   const handleLoginEmailChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setLoginForm(prev => ({ ...prev, email: e.target.value }))
   }, [])
@@ -533,13 +533,13 @@ export default function CurrencyExchangeApp() {
     setAuthError('')
   }, [])
 
-  // 监听货币变化
+  // 🔥 修复：添加完整的依赖项
   useEffect(() => {
     if (amount && !isNaN(parseFloat(amount))) {
       convertCurrency()
     }
     fetchHistoricalData(fromCurrency, toCurrency)
-  }, [fromCurrency, toCurrency])
+  }, [fromCurrency, toCurrency, amount, convertCurrency])
 
   // 状态栏组件
   const StatusBar = () => (

@@ -802,7 +802,26 @@ export default function CurrencyExchangeApp() {
     </div>
   )
 
-  // 汇率标签页
+  // 生成图表数据
+  const generateChartData = useCallback((baseRate: number) => {
+    const data: ChartData[] = []
+    const now = new Date()
+    
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000)
+      const variation = (Math.random() - 0.5) * 0.02 // ±1% 的随机波动
+      const rate = Number((baseRate * (1 + variation)).toFixed(4))
+      
+      data.push({
+        date: date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' }),
+        rate: rate
+      })
+    }
+    
+    return data
+  }, [])
+
+  // 汇率标签页 - 带图表
   const RatesTab = () => {
     const popularRates = [
       { from: 'USD', to: 'CNY', rate: 7.314, change: '+0.12%' },
@@ -811,8 +830,61 @@ export default function CurrencyExchangeApp() {
       { from: 'JPY', to: 'CNY', rate: 0.0468, change: '-0.03%' }
     ]
 
+    // 生成当前汇率对的图表数据
+    useEffect(() => {
+      if (exchangeRate) {
+        const data = generateChartData(exchangeRate.rate)
+        setChartData(data)
+      }
+    }, [exchangeRate, generateChartData])
+
     return (
       <div className="p-4 space-y-6">
+        {/* 汇率走势图 */}
+        {chartData.length > 0 && (
+          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-lg">USD/CNY 走势</h3>
+              <span className="text-sm text-gray-500">近7天</span>
+            </div>
+            <div className="h-48">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData}>
+                  <XAxis 
+                    dataKey="date" 
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 12, fill: '#6B7280' }}
+                  />
+                  <YAxis 
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 12, fill: '#6B7280' }}
+                    domain={['dataMin - 0.01', 'dataMax + 0.01']}
+                  />
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: '#fff',
+                      border: '1px solid #E5E7EB',
+                      borderRadius: '8px',
+                      fontSize: '12px'
+                    }}
+                    formatter={(value: number) => [value.toFixed(4), '汇率']}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="rate" 
+                    stroke="#3B82F6" 
+                    strokeWidth={2}
+                    dot={{ fill: '#3B82F6', strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6, fill: '#3B82F6' }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
         {/* 热门汇率 */}
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
           <h3 className="font-semibold text-lg mb-4">热门汇率</h3>

@@ -348,7 +348,7 @@ export default function CurrencyExchangeApp() {
   const [authError, setAuthError] = useState('')
 
   // 获取汇率数据 - 100%可靠的方案
-  const fetchExchangeRate = async (from: string, to: string) => {
+  const fetchExchangeRate = useCallback(async (from: string, to: string) => {
     console.log(`💱 计算汇率: ${from} → ${to}`)
     
     // 模拟网络延迟，让用户感觉是在获取实时数据
@@ -456,35 +456,7 @@ export default function CurrencyExchangeApp() {
       lastUpdated: new Date().toISOString(),
       source: 'market-data'
     }
-  }
-
-  // 获取历史数据
-  const fetchHistoricalData = async (from: string, to: string) => {
-    try {
-      // 生成模拟历史数据
-      const days = 7
-      const historicalData = []
-      const baseRate = await fetchExchangeRate(from, to)
-      
-      for (let i = days - 1; i >= 0; i--) {
-        const date = new Date()
-        date.setDate(date.getDate() - i)
-        
-        // 生成轻微波动的汇率
-        const variation = (Math.random() - 0.5) * 0.1 // ±5%的波动
-        const rate = baseRate.rate * (1 + variation)
-        
-        historicalData.push({
-          date: date.toISOString().split('T')[0],
-          rate: parseFloat(rate.toFixed(6))
-        })
-      }
-      
-      setChartData(historicalData)
-    } catch (error) {
-      console.error('历史数据获取错误:', error)
-    }
-  }
+  }, [])
 
   // 转换货币
   const convertCurrency = useCallback(async () => {
@@ -514,7 +486,7 @@ export default function CurrencyExchangeApp() {
     }
     
     setLoading(false)
-  }, [amount, fromCurrency, toCurrency, user])
+  }, [amount, fromCurrency, toCurrency, user, fetchExchangeRate])
 
   // 🔥 修复：稳定的事件处理函数
   const handleLoginEmailChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -631,12 +603,11 @@ export default function CurrencyExchangeApp() {
     setAuthError('')
   }, [])
 
-  // 🔥 修复：添加完整的依赖项
+  // 🔥 修复：移除导致循环依赖的 useEffect
   useEffect(() => {
     if (amount && !isNaN(parseFloat(amount))) {
       convertCurrency()
     }
-    // 移除 fetchHistoricalData 调用，在 RatesTab 组件内部处理
   }, [fromCurrency, toCurrency, amount, convertCurrency])
 
   // 状态栏组件
@@ -750,7 +721,7 @@ export default function CurrencyExchangeApp() {
         <div className="flex justify-center">
           <button
             onClick={swapCurrencies}
-            className="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform"
+bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform"
           >
             <ArrowUpDown className="w-5 h-5" />
           </button>
@@ -822,7 +793,7 @@ export default function CurrencyExchangeApp() {
   // 汇率标签页
   const RatesTab = () => {
     // 确保有图表数据
-    const ensureChartData = () => {
+    const ensureChartData = useCallback(() => {
       if (chartData.length === 0) {
         // 生成7天的模拟数据
         const days = 7
@@ -845,12 +816,12 @@ export default function CurrencyExchangeApp() {
         
         setChartData(newChartData)
       }
-    }
+    }, [chartData.length])
 
     // 页面加载时确保有数据
     useEffect(() => {
       ensureChartData()
-    }, [])
+    }, [ensureChartData])
 
     // 热门货币汇率数据
     const popularRates = [

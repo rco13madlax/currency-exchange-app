@@ -685,7 +685,7 @@ export default function CurrencyExchangeApp() {
   useEffect(() => {
     // 只在货币对改变时立即转换
     if (amount && fromCurrency && toCurrency) {
-      convertWithCurrentAmount()
+      convertCurrency()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fromCurrency, toCurrency]) // 只依赖货币对
@@ -871,7 +871,7 @@ export default function CurrencyExchangeApp() {
 
       {/* 转换按钮 */}
       <button
-        onClick={convertWithCurrentAmount}
+        onClick={() => convertCurrency()}
         disabled={loading}
         className="w-full bg-blue-600 text-white py-4 rounded-2xl font-semibold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform disabled:opacity-50 hover:bg-blue-700"
       >

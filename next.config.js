@@ -1,9 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // 启用静态导出
-  output: 'export',
+  // 移除静态导出，使用SSR模式
+  // output: 'export', // 注释掉这行
   
-  // 禁用图像优化（静态导出不支持）
+  // 禁用图像优化（Cloudflare Pages支持）
   images: {
     unoptimized: true,
   },

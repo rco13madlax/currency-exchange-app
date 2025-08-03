@@ -17,7 +17,12 @@ interface ChartData {
   rate: number
 }
 
-// 🔥 修复：为模态框组件添加显示名称
+// 汇率数据类型定义
+interface MarketRates {
+  [key: string]: number
+}
+
+// 修复：为模态框组件添加显示名称
 const LoginModal = memo(function LoginModal({ 
   showLogin, 
   loginForm, 
@@ -75,8 +80,8 @@ const LoginModal = memo(function LoginModal({
               value={loginForm.email}
               onChange={onEmailChange}
               autoComplete="email"
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              placeholder="请输入邮箱地址"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              placeholder="请输入邮箱"
             />
           </div>
           
@@ -88,7 +93,7 @@ const LoginModal = memo(function LoginModal({
                 value={loginForm.password}
                 onChange={onPasswordChange}
                 autoComplete="current-password"
-                className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none pr-12"
                 placeholder="请输入密码"
               />
               <button
@@ -100,29 +105,29 @@ const LoginModal = memo(function LoginModal({
               </button>
             </div>
           </div>
-        </div>
-        
-        <button
-          onClick={onLogin}
-          className="w-full bg-blue-600 text-white py-3 rounded-xl font-medium mt-6 hover:bg-blue-700 transition-colors"
-        >
-          登录
-        </button>
-        
-        <p className="text-center text-gray-500 text-sm mt-4">
-          还没有账户？
+          
           <button
-            onClick={onSwitchToRegister}
-            className="text-blue-600 hover:text-blue-700 ml-1"
+            onClick={onLogin}
+            className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
           >
-            立即注册
+            登录
           </button>
-        </p>
+          
+          <div className="text-center">
+            <button
+              onClick={onSwitchToRegister}
+              className="text-blue-600 hover:text-blue-700 text-sm"
+            >
+              还没有账户？立即注册
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )
 })
 
+// 注册模态框
 const RegisterModal = memo(function RegisterModal({
   showRegister,
   registerForm,
@@ -162,12 +167,12 @@ const RegisterModal = memo(function RegisterModal({
       }}
     >
       <div 
-        className="bg-white w-full max-w-sm rounded-2xl p-6 animate-fadeIn"
+        className="bg-white w-full max-w-sm rounded-2xl p-6 animate-fadeIn max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="text-center mb-6">
           <h2 className="text-2xl font-bold text-gray-800 mb-2">创建账户</h2>
-          <p className="text-gray-500">加入汇率通，享受更多功能</p>
+          <p className="text-gray-500">注册汇率通账户</p>
         </div>
         
         {authError && (
@@ -184,8 +189,8 @@ const RegisterModal = memo(function RegisterModal({
               value={registerForm.name}
               onChange={onNameChange}
               autoComplete="name"
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              placeholder="请输入您的姓名"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              placeholder="请输入姓名"
             />
           </div>
           
@@ -196,8 +201,8 @@ const RegisterModal = memo(function RegisterModal({
               value={registerForm.email}
               onChange={onEmailChange}
               autoComplete="email"
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-              placeholder="请输入邮箱地址"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              placeholder="请输入邮箱"
             />
           </div>
           
@@ -209,8 +214,8 @@ const RegisterModal = memo(function RegisterModal({
                 value={registerForm.password}
                 onChange={onPasswordChange}
                 autoComplete="new-password"
-                className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                placeholder="至少6位密码"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none pr-12"
+                placeholder="请输入密码"
               />
               <button
                 type="button"
@@ -229,91 +234,103 @@ const RegisterModal = memo(function RegisterModal({
               value={registerForm.confirmPassword}
               onChange={onConfirmPasswordChange}
               autoComplete="new-password"
-              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
               placeholder="请再次输入密码"
             />
           </div>
-        </div>
-        
-        <button
-          onClick={onRegister}
-          className="w-full bg-blue-600 text-white py-3 rounded-xl font-medium mt-6 hover:bg-blue-700 transition-colors"
-        >
-          注册
-        </button>
-        
-        <p className="text-center text-gray-500 text-sm mt-4">
-          已有账户？
+          
           <button
-            onClick={onSwitchToLogin}
-            className="text-blue-600 hover:text-blue-700 ml-1"
+            onClick={onRegister}
+            className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
           >
-            立即登录
+            注册
           </button>
-        </p>
+          
+          <div className="text-center">
+            <button
+              onClick={onSwitchToLogin}
+              className="text-blue-600 hover:text-blue-700 text-sm"
+            >
+              已有账户？立即登录
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )
 })
 
-const CurrencyPicker = memo(function CurrencyPicker({ 
-  isOpen, 
-  onClose, 
-  onSelect, 
-  selectedCurrency 
+// 货币选择器
+const CurrencyPicker = memo(function CurrencyPicker({
+  isOpen,
+  onClose,
+  onSelect,
+  selectedCurrency
 }: {
   isOpen: boolean
   onClose: () => void
   onSelect: (currency: string) => void
   selectedCurrency: string
 }) {
+  const [searchTerm, setSearchTerm] = useState('')
+  
+  const filteredCurrencies = currencies.filter(currency =>
+    currency.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    currency.name.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
   if (!isOpen) return null
 
   return (
     <div 
-      className="currency-picker-overlay"
+      className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           onClose()
         }
       }}
     >
-      <div className="currency-picker-content">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">选择货币</h3>
-          <button 
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            ✕
-          </button>
-        </div>
-        
-        <div className="mb-4">
+      <div 
+        className="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl max-h-[80vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="p-4 border-b border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">选择货币</h3>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              ✕
+            </button>
+          </div>
+          
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
               placeholder="搜索货币..."
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
             />
           </div>
         </div>
         
-        <div className="space-y-2 max-h-64 overflow-y-auto">
-          {currencies.map(currency => (
+        <div className="flex-1 overflow-y-auto">
+          {filteredCurrencies.map((currency) => (
             <button
               key={currency.code}
               onClick={() => {
                 onSelect(currency.code)
                 onClose()
               }}
-              className={`w-full flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors ${
-                currency.code === selectedCurrency ? 'bg-blue-50 border border-blue-200' : ''
+              className={`w-full p-4 flex items-center gap-3 hover:bg-gray-50 transition-colors ${
+                selectedCurrency === currency.code ? 'bg-blue-50 border border-blue-200' : ''
               }`}
             >
               <span className="text-2xl">{currency.flag}</span>
-              <div className="flex-1">
+              <div className="flex-1 text-left">
                 <div className="font-medium">{currency.code}</div>
                 <div className="text-sm text-gray-500">{currency.name}</div>
               </div>
@@ -348,14 +365,14 @@ export default function CurrencyExchangeApp() {
   const [authError, setAuthError] = useState('')
 
   // 获取汇率数据 - 100%可靠的方案
-  const fetchExchangeRate = useCallback(async (from: string, to: string) => {
+  const fetchExchangeRate = useCallback(async (from: string, to: string): Promise<ExchangeRate> => {
     console.log(`💱 计算汇率: ${from} → ${to}`)
     
     // 模拟网络延迟，让用户感觉是在获取实时数据
     await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000))
     
     // 基于真实市场汇率的准确数据（2025年8月3日）
-    const marketRates = {
+    const marketRates: MarketRates = {
       // 美元相关 (基准货币)
       'USD-CNY': 7.314,
       'USD-EUR': 0.872,
@@ -424,19 +441,24 @@ export default function CurrencyExchangeApp() {
       baseRate = 1
     }
     // 直接匹配
-    else if (marketRates[key]) {
+    else if (key in marketRates) {
       baseRate = marketRates[key]
     }
     // 反向匹配
-    else if (marketRates[reverseKey]) {
+    else if (reverseKey in marketRates) {
       baseRate = 1 / marketRates[reverseKey]
     }
     // 通过USD进行桥接转换
     else {
-      const fromToUSD = marketRates[`${from}-USD`] || 
-                       (marketRates[`USD-${from}`] ? 1 / marketRates[`USD-${from}`] : 1)
-      const USDToTo = marketRates[`USD-${to}`] || 
-                     (marketRates[`${to}-USD`] ? 1 / marketRates[`${to}-USD`] : 1)
+      const fromToUSDKey = `${from}-USD`
+      const USDFromKey = `USD-${from}`
+      const USDToKey = `USD-${to}`
+      const toUSDKey = `${to}-USD`
+      
+      const fromToUSD = fromToUSDKey in marketRates ? marketRates[fromToUSDKey] : 
+                       (USDFromKey in marketRates ? 1 / marketRates[USDFromKey] : 1)
+      const USDToTo = USDToKey in marketRates ? marketRates[USDToKey] : 
+                     (toUSDKey in marketRates ? 1 / marketRates[toUSDKey] : 1)
       baseRate = fromToUSD * USDToTo
     }
 
@@ -488,7 +510,7 @@ export default function CurrencyExchangeApp() {
     setLoading(false)
   }, [amount, fromCurrency, toCurrency, user, fetchExchangeRate])
 
-  // 🔥 修复：稳定的事件处理函数
+  // 修复：稳定的事件处理函数
   const handleLoginEmailChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setLoginForm(prev => ({ ...prev, email: e.target.value }))
   }, [])
@@ -560,7 +582,6 @@ export default function CurrencyExchangeApp() {
     } else {
       setShowRegister(false)
       setRegisterForm({ name: '', email: '', password: '', confirmPassword: '' })
-      // 可以显示成功消息或直接登录
     }
   }, [registerForm, signUp])
 
@@ -571,14 +592,14 @@ export default function CurrencyExchangeApp() {
   }, [signOut])
 
   // 切换货币
-  const swapCurrencies = () => {
+  const swapCurrencies = useCallback(() => {
     setFromCurrency(toCurrency)
     setToCurrency(fromCurrency)
     if (convertedAmount && amount) {
       setAmount(convertedAmount)
       setConvertedAmount(amount)
     }
-  }
+  }, [fromCurrency, toCurrency, amount, convertedAmount])
 
   // 模态框控制函数
   const handleCloseLogin = useCallback(() => {
@@ -603,12 +624,16 @@ export default function CurrencyExchangeApp() {
     setAuthError('')
   }, [])
 
-  // 🔥 修复：移除导致循环依赖的 useEffect
+  // 修复：自动转换 - 移除循环依赖
   useEffect(() => {
-    if (amount && !isNaN(parseFloat(amount))) {
-      convertCurrency()
-    }
-  }, [fromCurrency, toCurrency, amount, convertCurrency])
+    const timer = setTimeout(() => {
+      if (amount && !isNaN(parseFloat(amount))) {
+        convertCurrency()
+      }
+    }, 300) // 添加防抖
+
+    return () => clearTimeout(timer)
+  }, [fromCurrency, toCurrency, amount]) // 移除 convertCurrency 依赖
 
   // 状态栏组件
   const StatusBar = () => (
@@ -656,7 +681,7 @@ export default function CurrencyExchangeApp() {
 
   // 底部导航
   const BottomNavigation = () => (
-    <div className="bg-white border-t border-gray-200 px-4 py-2">
+    <div className="fixed bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-md bg-white border-t border-gray-200 px-4 py-2">
       <div className="flex justify-around">
         {[
           { key: 'converter', icon: Calculator, label: '转换' },
@@ -721,7 +746,7 @@ export default function CurrencyExchangeApp() {
         <div className="flex justify-center">
           <button
             onClick={swapCurrencies}
-bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform"
+            className="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform"
           >
             <ArrowUpDown className="w-5 h-5" />
           </button>
@@ -765,7 +790,7 @@ bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg a
         {loading ? (
           <>
             <RefreshCw className="w-5 h-5 animate-spin" />
-            转换中...
+            计算中...
           </>
         ) : (
           <>
@@ -774,175 +799,38 @@ bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg a
           </>
         )}
       </button>
-
-      {/* 快捷金额 */}
-      <div className="grid grid-cols-4 gap-3">
-        {['100', '500', '1000', '5000'].map(quickAmount => (
-          <button
-            key={quickAmount}
-            onClick={() => setAmount(quickAmount)}
-            className="py-3 bg-white rounded-xl shadow-sm border border-gray-100 font-medium active:scale-95 transition-transform"
-          >
-            {quickAmount}
-          </button>
-        ))}
-      </div>
     </div>
   )
 
   // 汇率标签页
   const RatesTab = () => {
-    // 确保有图表数据
-    const ensureChartData = useCallback(() => {
-      if (chartData.length === 0) {
-        // 生成7天的模拟数据
-        const days = 7
-        const newChartData = []
-        const baseRate = 7.314 // USD to CNY base rate
-        
-        for (let i = days - 1; i >= 0; i--) {
-          const date = new Date()
-          date.setDate(date.getDate() - i)
-          
-          // 生成合理的汇率波动
-          const variation = (Math.random() - 0.5) * 0.05 // ±2.5%的波动
-          const rate = baseRate * (1 + variation)
-          
-          newChartData.push({
-            date: date.toISOString().split('T')[0],
-            rate: parseFloat(rate.toFixed(4))
-          })
-        }
-        
-        setChartData(newChartData)
-      }
-    }, [chartData.length])
-
-    // 页面加载时确保有数据
-    useEffect(() => {
-      ensureChartData()
-    }, [ensureChartData])
-
-    // 热门货币汇率数据
     const popularRates = [
-      {
-        code: 'EUR',
-        name: '欧元',
-        flag: '🇪🇺',
-        rate: '0.8720',
-        change: '+0.12%',
-        isPositive: true
-      },
-      {
-        code: 'JPY', 
-        name: '日元',
-        flag: '🇯🇵',
-        rate: '156.24',
-        change: '-0.08%',
-        isPositive: false
-      },
-      {
-        code: 'GBP',
-        name: '英镑', 
-        flag: '🇬🇧',
-        rate: '0.8201',
-        change: '+0.05%',
-        isPositive: true
-      },
-      {
-        code: 'AUD',
-        name: '澳元',
-        flag: '🇦🇺', 
-        rate: '1.5894',
-        change: '+0.23%',
-        isPositive: true
-      },
-      {
-        code: 'CAD',
-        name: '加元',
-        flag: '🇨🇦',
-        rate: '1.4387',
-        change: '-0.15%',
-        isPositive: false
-      }
+      { from: 'USD', to: 'CNY', rate: 7.314, change: '+0.12%' },
+      { from: 'EUR', to: 'CNY', rate: 8.389, change: '-0.08%' },
+      { from: 'GBP', to: 'CNY', rate: 8.923, change: '+0.05%' },
+      { from: 'JPY', to: 'CNY', rate: 0.0468, change: '-0.03%' }
     ]
 
     return (
-      <div className="p-4 space-y-4">
-        {/* 汇率图表 */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-lg">{fromCurrency}/{toCurrency} 走势</h3>
-            <span className="text-sm text-gray-500">近7天</span>
-          </div>
-          
-          {chartData.length > 0 ? (
-            <div className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData}>
-                  <XAxis 
-                    dataKey="date" 
-                    axisLine={false} 
-                    tickLine={false}
-                    tick={{fontSize: 12}}
-                    tickFormatter={(value) => {
-                      const date = new Date(value)
-                      return `${date.getMonth() + 1}/${date.getDate()}`
-                    }}
-                  />
-                  <YAxis 
-                    hide 
-                    domain={['dataMin - 0.01', 'dataMax + 0.01']} 
-                  />
-                  <Tooltip 
-                    contentStyle={{
-                      backgroundColor: '#fff',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '12px',
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                    }}
-                    formatter={(value: number) => [value?.toFixed(4), '汇率']}
-                    labelFormatter={(label) => `日期: ${label}`}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="rate" 
-                    stroke="#3b82f6" 
-                    strokeWidth={3}
-                    dot={false}
-                    activeDot={{ r: 6, fill: '#3b82f6' }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-            <div className="h-48 flex items-center justify-center text-gray-500">
-              <div className="text-center">
-                <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-2" />
-                <p>加载图表数据...</p>
-              </div>
-            </div>
-          )}
-        </div>
-
+      <div className="p-4 space-y-6">
         {/* 热门汇率 */}
-        <div className="space-y-3">
-          <h3 className="font-semibold text-lg px-2">热门汇率</h3>
-          {popularRates.map(currency => (
-            <div key={currency.code} className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="text-2xl">{currency.flag}</span>
-                  <div>
-                    <div className="font-semibold">{fromCurrency}/{currency.code}</div>
-                    <div className="text-sm text-gray-500">{currency.name}</div>
-                  </div>
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+          <h3 className="font-semibold text-lg mb-4">热门汇率</h3>
+          {popularRates.map((rate, index) => (
+            <div key={index} className={`flex items-center justify-between py-3 ${index !== popularRates.length - 1 ? 'border-b border-gray-100' : ''}`}>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">{currencies.find(c => c.code === rate.from)?.flag}</span>
+                  <span className="font-medium">{rate.from}</span>
+                  <span className="text-gray-400">→</span>
+                  <span className="text-lg">{currencies.find(c => c.code === rate.to)?.flag}</span>
+                  <span className="font-medium">{rate.to}</span>
                 </div>
-                <div className="text-right">
-                  <div className="font-semibold text-lg">{currency.rate}</div>
-                  <div className={`text-sm ${currency.isPositive ? 'text-green-600' : 'text-red-600'}`}>
-                    {currency.change}
-                  </div>
+              </div>
+              <div className="text-right">
+                <div className="font-semibold">{rate.rate}</div>
+                <div className={`text-sm ${rate.change.startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>
+                  {rate.change}
                 </div>
               </div>
             </div>
@@ -1070,6 +958,7 @@ bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg a
           } else if (showCurrencyPicker === 'to') {
             setToCurrency(currency)
           }
+          setShowCurrencyPicker(null)
         }}
         selectedCurrency={showCurrencyPicker === 'from' ? fromCurrency : toCurrency}
       />

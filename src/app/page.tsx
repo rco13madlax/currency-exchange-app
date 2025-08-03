@@ -372,6 +372,15 @@ export default function CurrencyExchangeApp() {
     // 模拟网络延迟，让用户感觉是在获取实时数据
     await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 1000))
     
+    // 🔥 修复：相同货币直接返回1.0，不添加任何波动
+    if (from === to) {
+      return {
+        rate: 1.0,
+        lastUpdated: new Date().toISOString(),
+        source: 'local'
+      }
+    }
+    
     // 基于真实市场汇率的准确数据（2025年8月3日）
     const marketRates: MarketRates = {
       // 美元相关 (基准货币)
@@ -437,12 +446,8 @@ export default function CurrencyExchangeApp() {
     
     let baseRate = 1
     
-    // 相同货币
-    if (from === to) {
-      baseRate = 1
-    }
     // 直接匹配
-    else if (key in marketRates) {
+    if (key in marketRates) {
       baseRate = marketRates[key]
     }
     // 反向匹配
@@ -463,7 +468,7 @@ export default function CurrencyExchangeApp() {
       baseRate = fromToUSD * USDToTo
     }
 
-    // 添加基于时间的微小波动，模拟实时市场变化
+    // 只对不同货币添加微小波动，模拟实时市场变化
     const now = new Date()
     const timeVariation = Math.sin(now.getTime() / 300000) * 0.003 // 5分钟周期的微小变化
     const randomVariation = (Math.random() - 0.5) * 0.006 // ±0.3%的随机波动
@@ -491,7 +496,11 @@ export default function CurrencyExchangeApp() {
       const rateData = await fetchExchangeRate(fromCurrency, toCurrency)
       
       if (rateData) {
-        const result = (parseFloat(amount) * rateData.rate).toFixed(2)
+        // 🔥 修复：对于相同货币，直接使用原金额，不进行任何计算
+        const result = fromCurrency === toCurrency 
+          ? parseFloat(amount).toFixed(2)
+          : (parseFloat(amount) * rateData.rate).toFixed(2)
+        
         setConvertedAmount(result)
         setExchangeRate(rateData)
         
@@ -513,7 +522,7 @@ export default function CurrencyExchangeApp() {
       console.error('转换失败:', error)
       // 如果出错，显示简单的1:1转换（相同货币）
       if (fromCurrency === toCurrency) {
-        setConvertedAmount(amount)
+        setConvertedAmount(parseFloat(amount).toFixed(2))
         setExchangeRate({
           rate: 1,
           lastUpdated: new Date().toISOString(),

@@ -6,8 +6,8 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'rec
 import { useAuth } from '@/hooks/useAuth'
 import { supabase, currencies } from '@/lib/supabase'
 
-// 防抖函数实现
-function debounce<T extends (...args: any[]) => any>(
+// 防抖函数实现 - 修复TypeScript类型
+function debounce<T extends (...args: never[]) => void>(
   func: T,
   wait: number
 ): T & { cancel: () => void } {
@@ -671,13 +671,17 @@ export default function CurrencyExchangeApp() {
   }, [])
 
   // 修复：防抖转换，避免频繁重渲染
-  const debouncedConvert = useCallback(
-    debounce((fromCurr: string, toCurr: string, amt: string) => {
-      if (amt && !isNaN(parseFloat(amt))) {
-        convertCurrency()
-      }
+  const debouncedConvert = useCallback(() => {
+    if (amount && !isNaN(parseFloat(amount))) {
+      convertCurrency()
+    }
+  }, [amount, convertCurrency])
+
+  const debouncedConvertWithDelay = useCallback(
+    debounce(() => {
+      debouncedConvert()
     }, 500),
-    [convertCurrency]
+    [debouncedConvert]
   )
 
   // 修复：优化的自动转换逻辑
@@ -686,18 +690,19 @@ export default function CurrencyExchangeApp() {
     if (amount && fromCurrency && toCurrency) {
       convertCurrency()
     }
-  }, [fromCurrency, toCurrency]) // 只依赖货币对，不依赖amount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fromCurrency, toCurrency]) // 只依赖货币对，忽略其他依赖
 
   // 修复：金额变化时使用防抖
   useEffect(() => {
     if (amount && fromCurrency && toCurrency) {
-      debouncedConvert(fromCurrency, toCurrency, amount)
+      debouncedConvertWithDelay()
     }
     
     return () => {
-      debouncedConvert.cancel?.()
+      debouncedConvertWithDelay.cancel?.()
     }
-  }, [amount, debouncedConvert, fromCurrency, toCurrency])
+  }, [amount, fromCurrency, toCurrency, debouncedConvertWithDelay])
 
   // 修复：稳定的输入处理函数
   const handleAmountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {

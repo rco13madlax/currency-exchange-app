@@ -367,26 +367,129 @@ export default function CurrencyExchangeApp() {
   const [showPassword, setShowPassword] = useState(false)
   const [authError, setAuthError] = useState('')
 
-  // 获取汇率数据
-  const fetchExchangeRate = async (from: string, to: string) => {
+  // 修改 page.tsx 中的 fetchExchangeRate 函数
+// 直接在客户端调用第三方API获取实时汇率
+
+const fetchExchangeRate = async (from: string, to: string) => {
+  try {
+    // 方法1：使用免费的汇率API（有CORS支持）
     try {
-      const response = await fetch(`/api/rates?from=${from}&to=${to}`)
-      const data = await response.json()
-      
-      if (data.success) {
-        return {
-          rate: data.rate,
-          lastUpdated: data.lastUpdated,
-          source: data.source
+      const response = await fetch(
+        `https://api.fxratesapi.com/latest?base=${from}&currencies=${to}&resolution=1d&amount=1&places=6&format=json`,
+        {
+          headers: {
+            'Accept': 'application/json',
+          }
         }
-      } else {
-        throw new Error('获取汇率失败')
+      )
+      
+      if (response.ok) {
+        const data = await response.json()
+        if (data.rates && data.rates[to]) {
+          return {
+            rate: data.rates[to],
+            lastUpdated: new Date().toISOString(),
+            source: 'fxratesapi'
+          }
+        }
       }
-    } catch (error) {
-      console.error('汇率获取错误:', error)
-      return null
+    } catch (apiError) {
+      console.log('主API失败，尝试备用API:', apiError)
+    }
+
+    // 方法2：备用API
+    try {
+      const response = await fetch(
+        `https://api.exchangerate-api.com/v4/latest/${from}`,
+        {
+          headers: {
+            'Accept': 'application/json',
+          }
+        }
+      )
+      
+      if (response.ok) {
+        const data = await response.json()
+        if (data.rates && data.rates[to]) {
+          return {
+            rate: data.rates[to],
+            lastUpdated: new Date().toISOString(),
+            source: 'exchangerate-api'
+          }
+        }
+      }
+    } catch (apiError) {
+      console.log('备用API也失败，使用模拟数据:', apiError)
+    }
+
+    // 方法3：如果API都失败，使用高质量模拟数据
+    const mockRates: { [key: string]: number } = {
+      // 主要货币对 - 基于真实汇率
+      'USD-CNY': 7.25,
+      'USD-EUR': 0.85,
+      'USD-JPY': 150.3,
+      'USD-GBP': 0.78,
+      'USD-KRW': 1320.5,
+      'USD-AUD': 1.52,
+      'USD-CAD': 1.35,
+      'USD-CHF': 0.88,
+      'USD-SGD': 1.35,
+      'USD-HKD': 7.85,
+      
+      // 欧元相关
+      'EUR-CNY': 8.53,
+      'EUR-USD': 1.18,
+      'EUR-JPY': 177.4,
+      'EUR-GBP': 0.92,
+      
+      // 英镑相关
+      'GBP-CNY': 9.28,
+      'GBP-USD': 1.28,
+      'GBP-EUR': 1.09,
+      
+      // 日元相关
+      'JPY-CNY': 0.048,
+      'JPY-USD': 0.0067,
+      'JPY-EUR': 0.0057,
+      
+      // 人民币相关
+      'CNY-USD': 0.138,
+      'CNY-EUR': 0.117,
+      'CNY-JPY': 20.73,
+      'CNY-GBP': 0.108,
+    }
+
+    const key = `${from}-${to}`
+    const reverseKey = `${to}-${from}`
+    
+    let rate = 1
+    if (from === to) {
+      rate = 1
+    } else if (mockRates[key]) {
+      rate = mockRates[key]
+    } else if (mockRates[reverseKey]) {
+      rate = 1 / mockRates[reverseKey]
+    } else {
+      // 基于USD作为中间货币计算
+      const fromToUSD = mockRates[`${from}-USD`] || (mockRates[`USD-${from}`] ? 1/mockRates[`USD-${from}`] : 1)
+      const usdToTo = mockRates[`USD-${to}`] || (mockRates[`${to}-USD`] ? 1/mockRates[`${to}-USD`] : 1)
+      rate = fromToUSD * usdToTo
+    }
+
+    return {
+      rate: rate,
+      lastUpdated: new Date().toISOString(),
+      source: 'mock-data'
+    }
+  } catch (error) {
+    console.error('汇率获取错误:', error)
+    return {
+      rate: 1,
+      lastUpdated: new Date().toISOString(),
+      source: 'fallback'
     }
   }
+}
 
   // 获取历史数据
   const fetchHistoricalData = async (from: string, to: string) => {

@@ -21,49 +21,22 @@ interface MarketRates {
   [key: string]: number
 }
 
-// 🔥 独立输入框组件 - 解决焦点问题
+// 🔥 独立输入框组件 - 只更新值，不触发计算
 const AmountInput = memo(function AmountInput({
-  initialValue,
-  onAmountChange,
+  value,
+  onChange,
   disabled = false
 }: {
-  initialValue: string
-  onAmountChange: (value: string) => void
+  value: string
+  onChange: (value: string) => void
   disabled?: boolean
 }) {
-  const [value, setValue] = useState(initialValue)
-  const timerRef = useRef<NodeJS.Timeout | null>(null)
-  
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value
     if (newValue === '' || /^\d*\.?\d*$/.test(newValue)) {
-      setValue(newValue)
-      
-      // 清除之前的定时器
-      if (timerRef.current) {
-        clearTimeout(timerRef.current)
-      }
-      
-      // 防抖调用父组件
-      timerRef.current = setTimeout(() => {
-        onAmountChange(newValue)
-      }, 500)
+      onChange(newValue) // 直接更新，不触发计算
     }
-  }, [onAmountChange])
-  
-  // 同步外部值变化
-  useEffect(() => {
-    setValue(initialValue)
-  }, [initialValue])
-  
-  // 清理定时器
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current)
-      }
-    }
-  }, [])
+  }, [onChange])
 
   return (
     <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
@@ -232,18 +205,21 @@ export default function CurrencyExchangeApp() {
     }
   }, [fetchExchangeRate, fromCurrency, toCurrency, user])
 
-  // 处理金额变化
-  const handleAmountUpdate = useCallback((newAmount: string) => {
+  // 处理金额变化 - 只更新状态，不计算
+  const handleAmountChange = useCallback((newAmount: string) => {
     setAmount(newAmount)
-    performConversion(newAmount)
-  }, [performConversion])
+    // 🔥 移除自动计算，只在用户点击按钮时计算
+  }, [])
 
-  // 货币变化时重新转换
+  // 🔥 移除自动转换的 useEffect
+  // 只有用户主动点击按钮或切换货币时才计算
+
+  // 货币变化时自动转换一次（因为用户主动选择了新货币）
   useEffect(() => {
-    if (amount) {
+    if (amount && fromCurrency && toCurrency) {
       performConversion(amount)
     }
-  }, [fromCurrency, toCurrency, performConversion, amount])
+  }, [fromCurrency, toCurrency]) // 🔥 移除 amount 依赖，避免输入时自动计算
 
   // 交换货币
   const swapCurrencies = useCallback(() => {
@@ -304,10 +280,10 @@ export default function CurrencyExchangeApp() {
       <div className="p-4 space-y-6">
         {currentTab === 'converter' && (
           <>
-            {/* 金额输入 */}
+            {/* 金额输入 - 只更新值，不自动计算 */}
             <AmountInput
-              initialValue={amount}
-              onAmountChange={handleAmountUpdate}
+              value={amount}
+              onChange={handleAmountChange}
               disabled={loading}
             />
 
@@ -364,11 +340,11 @@ export default function CurrencyExchangeApp() {
               </div>
             )}
 
-            {/* 转换按钮 */}
+            {/* 转换按钮 - 点击时手动计算 */}
             <button
               onClick={() => performConversion(amount)}
-              disabled={loading}
-              className="w-full bg-blue-600 text-white py-4 rounded-2xl font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
+              disabled={loading || !amount}
+              className="w-full bg-blue-600 text-white py-4 rounded-2xl font-semibold flex items-center justify-center gap-2 disabled:opacity-50 hover:bg-blue-700 active:scale-95 transition-all"
             >
               {loading ? (
                 <>
@@ -378,7 +354,7 @@ export default function CurrencyExchangeApp() {
               ) : (
                 <>
                   <Calculator className="w-5 h-5" />
-                  立即转换
+                  {amount ? '立即转换' : '请输入金额'}
                 </>
               )}
             </button>

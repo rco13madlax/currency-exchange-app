@@ -6,6 +6,28 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'rec
 import { useAuth } from '@/hooks/useAuth'
 import { supabase, currencies } from '@/lib/supabase'
 
+// 防抖函数实现
+function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  wait: number
+): T & { cancel: () => void } {
+  let timeout: NodeJS.Timeout | null = null
+  
+  const debounced = ((...args: Parameters<T>) => {
+    if (timeout) clearTimeout(timeout)
+    timeout = setTimeout(() => func(...args), wait)
+  }) as T & { cancel: () => void }
+  
+  debounced.cancel = () => {
+    if (timeout) {
+      clearTimeout(timeout)
+      timeout = null
+    }
+  }
+  
+  return debounced
+}
+
 interface ExchangeRate {
   rate: number
   lastUpdated: string
@@ -648,23 +670,43 @@ export default function CurrencyExchangeApp() {
     setAuthError('')
   }, [])
 
-  // 修复：自动转换 - 移除循环依赖
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (amount && !isNaN(parseFloat(amount))) {
+  // 修复：防抖转换，避免频繁重渲染
+  const debouncedConvert = useCallback(
+    debounce((fromCurr: string, toCurr: string, amt: string) => {
+      if (amt && !isNaN(parseFloat(amt))) {
         convertCurrency()
       }
-    }, 300) // 添加防抖
+    }, 500),
+    [convertCurrency]
+  )
 
-    return () => clearTimeout(timer)
-  }, [fromCurrency, toCurrency, amount]) // 移除 convertCurrency 依赖
-
-  // 修复：初始化时进行一次转换
+  // 修复：优化的自动转换逻辑
   useEffect(() => {
+    // 只在货币对改变时立即转换
     if (amount && fromCurrency && toCurrency) {
       convertCurrency()
     }
-  }, []) // 只在组件挂载时执行一次
+  }, [fromCurrency, toCurrency]) // 只依赖货币对，不依赖amount
+
+  // 修复：金额变化时使用防抖
+  useEffect(() => {
+    if (amount && fromCurrency && toCurrency) {
+      debouncedConvert(fromCurrency, toCurrency, amount)
+    }
+    
+    return () => {
+      debouncedConvert.cancel?.()
+    }
+  }, [amount, debouncedConvert, fromCurrency, toCurrency])
+
+  // 修复：稳定的输入处理函数
+  const handleAmountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    // 只允许数字和小数点
+    if (value === '' || /^\d*\.?\d*$/.test(value)) {
+      setAmount(value)
+    }
+  }, [])
 
   // 状态栏组件
   const StatusBar = () => (
@@ -740,19 +782,22 @@ export default function CurrencyExchangeApp() {
     </div>
   )
 
-  // 转换器标签页
+  // 转换器标签页 - 修复输入框焦点问题
   const ConverterTab = () => (
     <div className="p-4 space-y-6">
-      {/* 金额输入 */}
+      {/* 金额输入 - 优化版本 */}
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
         <label className="block text-sm font-medium text-gray-700 mb-2">输入金额</label>
         <input
-          type="number"
+          type="text"
           value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          className="w-full text-3xl font-bold border-none outline-none bg-transparent"
+          onChange={handleAmountChange}
+          className="w-full text-3xl font-bold border-none outline-none bg-transparent placeholder-gray-400"
           placeholder="0"
           inputMode="decimal"
+          autoComplete="off"
+          autoCorrect="off"
+          spellCheck="false"
         />
       </div>
 
@@ -761,7 +806,7 @@ export default function CurrencyExchangeApp() {
         {/* 源货币 */}
         <button
           onClick={() => setShowCurrencyPicker('from')}
-          className="w-full bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between"
+          className="w-full bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between hover:bg-gray-50 transition-colors"
         >
           <div className="flex items-center gap-3">
             <span className="text-2xl">{currencies.find(c => c.code === fromCurrency)?.flag}</span>
@@ -777,7 +822,7 @@ export default function CurrencyExchangeApp() {
         <div className="flex justify-center">
           <button
             onClick={swapCurrencies}
-            className="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform"
+            className="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform hover:bg-blue-700"
           >
             <ArrowUpDown className="w-5 h-5" />
           </button>
@@ -786,7 +831,7 @@ export default function CurrencyExchangeApp() {
         {/* 目标货币 */}
         <button
           onClick={() => setShowCurrencyPicker('to')}
-          className="w-full bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between"
+          className="w-full bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between hover:bg-gray-50 transition-colors"
         >
           <div className="flex items-center gap-3">
             <span className="text-2xl">{currencies.find(c => c.code === toCurrency)?.flag}</span>
@@ -816,7 +861,7 @@ export default function CurrencyExchangeApp() {
       <button
         onClick={convertCurrency}
         disabled={loading}
-        className="w-full bg-blue-600 text-white py-4 rounded-2xl font-semibold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform disabled:opacity-50"
+        className="w-full bg-blue-600 text-white py-4 rounded-2xl font-semibold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform disabled:opacity-50 hover:bg-blue-700"
       >
         {loading ? (
           <>

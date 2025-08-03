@@ -346,6 +346,7 @@ const CurrencyPicker = memo(function CurrencyPicker({
 export default function CurrencyExchangeApp() {
   const { user, userProfile, loading: authLoading, signUp, signIn, signOut } = useAuth()
   
+  // 修复：设置初始默认货币为 USD 和 CNY
   const [currentTab, setCurrentTab] = useState('converter')
   const [fromCurrency, setFromCurrency] = useState('USD')
   const [toCurrency, setToCurrency] = useState('CNY')
@@ -480,34 +481,48 @@ export default function CurrencyExchangeApp() {
     }
   }, [])
 
-  // 转换货币
+  // 转换货币 - 修复版本
   const convertCurrency = useCallback(async () => {
     if (!amount || isNaN(parseFloat(amount))) return
     
     setLoading(true)
-    const rateData = await fetchExchangeRate(fromCurrency, toCurrency)
     
-    if (rateData) {
-      const result = (parseFloat(amount) * rateData.rate).toFixed(2)
-      setConvertedAmount(result)
-      setExchangeRate(rateData)
+    try {
+      const rateData = await fetchExchangeRate(fromCurrency, toCurrency)
       
-      // 保存转换历史（仅限已登录用户）
-      if (user) {
-        await supabase.from('conversion_history').insert([
-          {
-            user_id: user.id,
-            from_currency: fromCurrency,
-            to_currency: toCurrency,
-            from_amount: parseFloat(amount),
-            to_amount: parseFloat(result),
-            exchange_rate: rateData.rate
-          }
-        ])
+      if (rateData) {
+        const result = (parseFloat(amount) * rateData.rate).toFixed(2)
+        setConvertedAmount(result)
+        setExchangeRate(rateData)
+        
+        // 保存转换历史（仅限已登录用户）
+        if (user) {
+          await supabase.from('conversion_history').insert([
+            {
+              user_id: user.id,
+              from_currency: fromCurrency,
+              to_currency: toCurrency,
+              from_amount: parseFloat(amount),
+              to_amount: parseFloat(result),
+              exchange_rate: rateData.rate
+            }
+          ])
+        }
       }
+    } catch (error) {
+      console.error('转换失败:', error)
+      // 如果出错，显示简单的1:1转换（相同货币）
+      if (fromCurrency === toCurrency) {
+        setConvertedAmount(amount)
+        setExchangeRate({
+          rate: 1,
+          lastUpdated: new Date().toISOString(),
+          source: 'local'
+        })
+      }
+    } finally {
+      setLoading(false)
     }
-    
-    setLoading(false)
   }, [amount, fromCurrency, toCurrency, user, fetchExchangeRate])
 
   // 修复：稳定的事件处理函数
@@ -634,6 +649,13 @@ export default function CurrencyExchangeApp() {
 
     return () => clearTimeout(timer)
   }, [fromCurrency, toCurrency, amount]) // 移除 convertCurrency 依赖
+
+  // 修复：初始化时进行一次转换
+  useEffect(() => {
+    if (amount && fromCurrency && toCurrency) {
+      convertCurrency()
+    }
+  }, []) // 只在组件挂载时执行一次
 
   // 状态栏组件
   const StatusBar = () => (
@@ -775,7 +797,7 @@ export default function CurrencyExchangeApp() {
           <div className="text-3xl font-bold text-gray-800">{convertedAmount}</div>
           {exchangeRate && (
             <div className="text-sm text-gray-500 mt-2">
-              1 {fromCurrency} = {exchangeRate.rate.toFixed(6)} {toCurrency}
+              1 {fromCurrency} = {fromCurrency === toCurrency ? '1.000000' : exchangeRate.rate.toFixed(6)} {toCurrency}
             </div>
           )}
         </div>
@@ -821,6 +843,13 @@ export default function CurrencyExchangeApp() {
     return data
   }, [])
 
+  // 修复：初始化图表数据
+  useEffect(() => {
+    // 设置默认的USD/CNY图表数据
+    const defaultData = generateChartData(7.314)
+    setChartData(defaultData)
+  }, [generateChartData])
+
   // 汇率标签页 - 带图表
   const RatesTab = () => {
     const popularRates = [
@@ -830,60 +859,50 @@ export default function CurrencyExchangeApp() {
       { from: 'JPY', to: 'CNY', rate: 0.0468, change: '-0.03%' }
     ]
 
-    // 生成当前汇率对的图表数据
-    useEffect(() => {
-      if (exchangeRate) {
-        const data = generateChartData(exchangeRate.rate)
-        setChartData(data)
-      }
-    }, [exchangeRate, generateChartData])
-
     return (
       <div className="p-4 space-y-6">
         {/* 汇率走势图 */}
-        {chartData.length > 0 && (
-          <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-lg">USD/CNY 走势</h3>
-              <span className="text-sm text-gray-500">近7天</span>
-            </div>
-            <div className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={chartData}>
-                  <XAxis 
-                    dataKey="date" 
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 12, fill: '#6B7280' }}
-                  />
-                  <YAxis 
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 12, fill: '#6B7280' }}
-                    domain={['dataMin - 0.01', 'dataMax + 0.01']}
-                  />
-                  <Tooltip 
-                    contentStyle={{
-                      backgroundColor: '#fff',
-                      border: '1px solid #E5E7EB',
-                      borderRadius: '8px',
-                      fontSize: '12px'
-                    }}
-                    formatter={(value: number) => [value.toFixed(4), '汇率']}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="rate" 
-                    stroke="#3B82F6" 
-                    strokeWidth={2}
-                    dot={{ fill: '#3B82F6', strokeWidth: 2, r: 4 }}
-                    activeDot={{ r: 6, fill: '#3B82F6' }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-lg">USD/CNY 走势</h3>
+            <span className="text-sm text-gray-500">近7天</span>
           </div>
-        )}
+          <div className="h-48">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                <XAxis 
+                  dataKey="date" 
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 12, fill: '#6B7280' }}
+                />
+                <YAxis 
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 12, fill: '#6B7280' }}
+                  domain={['dataMin - 0.01', 'dataMax + 0.01']}
+                />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: '#fff',
+                    border: '1px solid #E5E7EB',
+                    borderRadius: '8px',
+                    fontSize: '12px'
+                  }}
+                  formatter={(value: number) => [value.toFixed(4), '汇率']}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="rate" 
+                  stroke="#3B82F6" 
+                  strokeWidth={2}
+                  dot={{ fill: '#3B82F6', strokeWidth: 2, r: 4 }}
+                  activeDot={{ r: 6, fill: '#3B82F6' }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
 
         {/* 热门汇率 */}
         <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">

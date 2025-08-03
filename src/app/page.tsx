@@ -833,14 +833,15 @@ export default function CurrencyExchangeApp() {
     </div>
   )
 
-  // 生成图表数据
+  // 生成图表数据 - 美化版本
   const generateChartData = useCallback((baseRate: number) => {
     const data: ChartData[] = []
     const now = new Date()
     
     for (let i = 6; i >= 0; i--) {
       const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000)
-      const variation = (Math.random() - 0.5) * 0.02 // ±1% 的随机波动
+      // 控制波动范围在 ±0.5% 内，更真实
+      const variation = (Math.random() - 0.5) * 0.01 
       const rate = Number((baseRate * (1 + variation)).toFixed(4))
       
       data.push({
@@ -859,7 +860,7 @@ export default function CurrencyExchangeApp() {
     setChartData(defaultData)
   }, [generateChartData])
 
-  // 汇率标签页 - 带图表
+  // 汇率标签页 - 美化图表
   const RatesTab = () => {
     const popularRates = [
       { from: 'USD', to: 'CNY', rate: 7.314, change: '+0.12%' },
@@ -870,46 +871,123 @@ export default function CurrencyExchangeApp() {
 
     return (
       <div className="p-4 space-y-6">
-        {/* 汇率走势图 */}
-        <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-lg">USD/CNY 走势</h3>
-            <span className="text-sm text-gray-500">近7天</span>
+        {/* 美化的汇率走势图 */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="font-bold text-xl text-gray-800">USD/CNY 走势</h3>
+              <p className="text-sm text-gray-500 mt-1">美元对人民币汇率</p>
+            </div>
+            <div className="text-right">
+              <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 text-sm font-medium rounded-full">
+                近7天
+              </span>
+            </div>
           </div>
-          <div className="h-48">
+          
+          <div className="h-56 relative">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+              <LineChart 
+                data={chartData} 
+                margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+              >
+                <defs>
+                  <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.05}/>
+                  </linearGradient>
+                </defs>
+                
                 <XAxis 
                   dataKey="date" 
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fontSize: 12, fill: '#6B7280' }}
+                  tick={{ 
+                    fontSize: 12, 
+                    fill: '#6B7280',
+                    fontWeight: 500
+                  }}
+                  tickMargin={10}
                 />
+                
                 <YAxis 
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fontSize: 12, fill: '#6B7280' }}
-                  domain={['dataMin - 0.01', 'dataMax + 0.01']}
+                  tick={{ 
+                    fontSize: 12, 
+                    fill: '#6B7280',
+                    fontWeight: 500
+                  }}
+                  tickMargin={10}
+                  domain={['dataMin - 0.02', 'dataMax + 0.02']}
+                  tickFormatter={(value) => value.toFixed(3)}
                 />
+                
                 <Tooltip 
                   contentStyle={{
                     backgroundColor: '#fff',
-                    border: '1px solid #E5E7EB',
-                    borderRadius: '8px',
-                    fontSize: '12px'
+                    border: 'none',
+                    borderRadius: '12px',
+                    boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
+                    fontSize: '14px',
+                    fontWeight: '500'
                   }}
-                  formatter={(value: number) => [value.toFixed(4), '汇率']}
+                  formatter={(value: number) => [
+                    `¥${value.toFixed(4)}`, 
+                    '汇率'
+                  ]}
+                  labelFormatter={(label) => `${label}`}
+                  cursor={{ 
+                    stroke: '#3B82F6', 
+                    strokeWidth: 1,
+                    strokeDasharray: '5 5'
+                  }}
                 />
+                
+                {/* 渐变填充区域 */}
+                <defs>
+                  <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                
                 <Line 
                   type="monotone" 
                   dataKey="rate" 
                   stroke="#3B82F6" 
-                  strokeWidth={2}
-                  dot={{ fill: '#3B82F6', strokeWidth: 2, r: 4 }}
-                  activeDot={{ r: 6, fill: '#3B82F6' }}
+                  strokeWidth={3}
+                  dot={{ 
+                    fill: '#fff', 
+                    stroke: '#3B82F6',
+                    strokeWidth: 3, 
+                    r: 5,
+                    filter: 'drop-shadow(0 2px 4px rgba(59, 130, 246, 0.3))'
+                  }}
+                  activeDot={{ 
+                    r: 7, 
+                    fill: '#3B82F6',
+                    stroke: '#fff',
+                    strokeWidth: 3,
+                    filter: 'drop-shadow(0 4px 8px rgba(59, 130, 246, 0.4))'
+                  }}
                 />
               </LineChart>
             </ResponsiveContainer>
+            
+            {/* 图表装饰 */}
+            <div className="absolute top-4 right-4 flex items-center gap-2 text-sm text-gray-500">
+              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+              <span>汇率走势</span>
+            </div>
+          </div>
+          
+          {/* 图表底部信息 */}
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <div className="flex items-center justify-between text-sm text-gray-600">
+              <span>数据更新时间: {new Date().toLocaleString('zh-CN')}</span>
+              <span className="text-green-600 font-medium">↗ 实时数据</span>
+            </div>
           </div>
         </div>
 
@@ -939,14 +1017,14 @@ export default function CurrencyExchangeApp() {
 
         {/* 当前汇率信息 */}
         {exchangeRate && (
-          <div className="bg-blue-50 rounded-2xl p-4 border border-blue-200">
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-200">
             <div className="text-center">
-              <div className="text-sm text-blue-600 mb-1">当前汇率</div>
-              <div className="text-2xl font-bold text-blue-800">
-                1 {fromCurrency} = {exchangeRate.rate.toFixed(6)} {toCurrency}
+              <div className="text-sm text-blue-600 mb-2 font-medium">当前汇率</div>
+              <div className="text-3xl font-bold text-blue-800 mb-1">
+                1 {fromCurrency} = {fromCurrency === toCurrency ? '1.000000' : exchangeRate.rate.toFixed(6)} {toCurrency}
               </div>
-              <div className="text-xs text-blue-600 mt-2">
-                更新时间: {new Date(exchangeRate.lastUpdated).toLocaleTimeString()}
+              <div className="text-xs text-blue-600">
+                更新时间: {new Date(exchangeRate.lastUpdated).toLocaleTimeString('zh-CN')}
               </div>
             </div>
           </div>

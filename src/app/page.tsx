@@ -376,6 +376,7 @@ export default function CurrencyExchangeApp() {
   const [convertedAmount, setConvertedAmount] = useState('')
   const [exchangeRate, setExchangeRate] = useState<ExchangeRate | null>(null)
   const [loading, setLoading] = useState(false)
+  const [isTyping, setIsTyping] = useState(false) // 新增：输入状态指示
   const [showCurrencyPicker, setShowCurrencyPicker] = useState<'from' | 'to' | null>(null)
   const [chartData, setChartData] = useState<ChartData[]>([])
   
@@ -670,18 +671,14 @@ export default function CurrencyExchangeApp() {
     setAuthError('')
   }, [])
 
-  // 修复：防抖转换，避免频繁重渲染
-  const debouncedConvert = useCallback(() => {
-    if (amount && !isNaN(parseFloat(amount))) {
-      convertCurrency()
-    }
-  }, [amount, convertCurrency])
-
-  const debouncedConvertWithDelay = useCallback(
+  // 修复：防抖转换，等用户输入完成后再计算
+  const debouncedConvert = useCallback(
     debounce(() => {
-      debouncedConvert()
-    }, 500),
-    [debouncedConvert]
+      if (amount && !isNaN(parseFloat(amount))) {
+        convertCurrency()
+      }
+    }, 1000), // 增加到1秒，确保用户输入完成
+    [amount, convertCurrency]
   )
 
   // 修复：优化的自动转换逻辑
@@ -693,16 +690,17 @@ export default function CurrencyExchangeApp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fromCurrency, toCurrency]) // 只依赖货币对，忽略其他依赖
 
-  // 修复：金额变化时使用防抖
+  // 修复：金额变化时使用防抖，避免频繁计算
   useEffect(() => {
-    if (amount && fromCurrency && toCurrency) {
-      debouncedConvertWithDelay()
+    if (amount && amount.length > 0 && fromCurrency && toCurrency) {
+      // 延迟计算，等待用户输入完成
+      debouncedConvert()
     }
     
     return () => {
-      debouncedConvertWithDelay.cancel?.()
+      debouncedConvert.cancel?.()
     }
-  }, [amount, fromCurrency, toCurrency, debouncedConvertWithDelay])
+  }, [amount, fromCurrency, toCurrency, debouncedConvert])
 
   // 修复：稳定的输入处理函数
   const handleAmountChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -849,15 +847,24 @@ export default function CurrencyExchangeApp() {
         </button>
       </div>
 
-      {/* 结果显示 */}
-      {convertedAmount && (
+      {/* 结果显示 - 带输入状态提示 */}
+      {(convertedAmount || isTyping) && (
         <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-2xl p-6 border border-green-200">
           <div className="text-sm text-gray-600 mb-2">转换结果</div>
-          <div className="text-3xl font-bold text-gray-800">{convertedAmount}</div>
-          {exchangeRate && (
-            <div className="text-sm text-gray-500 mt-2">
-              1 {fromCurrency} = {fromCurrency === toCurrency ? '1.000000' : exchangeRate.rate.toFixed(6)} {toCurrency}
+          {isTyping ? (
+            <div className="text-2xl font-bold text-gray-500 flex items-center gap-2">
+              <span>输入中...</span>
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
             </div>
+          ) : (
+            <>
+              <div className="text-3xl font-bold text-gray-800">{convertedAmount}</div>
+              {exchangeRate && (
+                <div className="text-sm text-gray-500 mt-2">
+                  1 {fromCurrency} = {fromCurrency === toCurrency ? '1.000000' : exchangeRate.rate.toFixed(6)} {toCurrency}
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

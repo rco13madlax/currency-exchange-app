@@ -43,7 +43,7 @@ interface MarketRates {
   [key: string]: number
 }
 
-// 🔥 关键修复：独立输入框组件 - 纯输入，不触发计算
+// 🔥 完全隔离的输入框组件 - 绝对不会失焦
 const AmountInput = memo(function AmountInput({
   initialValue,
   onAmountChange,
@@ -53,31 +53,55 @@ const AmountInput = memo(function AmountInput({
   onAmountChange: (value: string) => void
   disabled?: boolean
 }) {
-  // 使用内部状态避免外部状态影响
+  // 使用内部状态，完全独立于父组件
   const [value, setValue] = useState(initialValue)
+  const [hasChanged, setHasChanged] = useState(false)
   
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value
     // 只允许数字和小数点
     if (newValue === '' || /^\d*\.?\d*$/.test(newValue)) {
       setValue(newValue)
-      // 立即同步到父组件，但不触发计算
-      onAmountChange(newValue)
+      setHasChanged(true)
     }
-  }, [onAmountChange])
+  }, [])
   
-  // 同步外部变化
+  // 只在失去焦点时同步到父组件
+  const handleBlur = useCallback(() => {
+    if (hasChanged) {
+      onAmountChange(value)
+      setHasChanged(false)
+    }
+  }, [value, hasChanged, onAmountChange])
+  
+  // 按回车键时同步
+  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && hasChanged) {
+      onAmountChange(value)
+      setHasChanged(false)
+    }
+  }, [value, hasChanged, onAmountChange])
+  
+  // 只在组件首次挂载时同步外部值
+  const isFirstMount = useRef(true)
   useEffect(() => {
-    setValue(initialValue)
+    if (isFirstMount.current) {
+      setValue(initialValue)
+      isFirstMount.current = false
+    }
   }, [initialValue])
 
   return (
     <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-      <label className="block text-sm font-medium text-gray-700 mb-2">输入金额</label>
+      <label className="block text-sm font-medium text-gray-700 mb-2">
+        输入金额 {hasChanged && <span className="text-blue-500 text-xs">(按回车或点击其他地方更新)</span>}
+      </label>
       <input
         type="text"
         value={value}
         onChange={handleChange}
+        onBlur={handleBlur}
+        onKeyPress={handleKeyPress}
         disabled={disabled}
         className="w-full text-3xl font-bold border-none outline-none bg-transparent placeholder-gray-400 disabled:opacity-50"
         placeholder="0"
@@ -780,92 +804,94 @@ export default function CurrencyExchangeApp() {
     </div>
   )
 
-  // 转换器标签页
-  const ConverterTab = () => (
-    <div className="p-4 space-y-6">
-      {/* 使用独立的金额输入组件 */}
-      <AmountInput
-        initialValue={amount}
-        onAmountChange={handleAmountUpdate}
-        disabled={loading}
-      />
+  // 转换器标签页 - 完全稳定版本
+  const ConverterTab = memo(function ConverterTab() {
+    return (
+      <div className="p-4 space-y-6">
+        {/* 使用完全独立的金额输入组件 */}
+        <AmountInput
+          initialValue={amount}
+          onAmountChange={handleAmountUpdate}
+          disabled={loading}
+        />
 
-      {/* 货币选择 */}
-      <div className="space-y-4">
-        {/* 源货币 */}
-        <button
-          onClick={() => setShowCurrencyPicker('from')}
-          className="w-full bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between hover:bg-gray-50 transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">{currencies.find(c => c.code === fromCurrency)?.flag}</span>
-            <div className="text-left">
-              <div className="font-semibold">{fromCurrency}</div>
-              <div className="text-sm text-gray-500">{currencies.find(c => c.code === fromCurrency)?.name}</div>
-            </div>
-          </div>
-          <MoreHorizontal className="w-5 h-5 text-gray-400" />
-        </button>
-
-        {/* 交换按钮 */}
-        <div className="flex justify-center">
+        {/* 货币选择 */}
+        <div className="space-y-4">
+          {/* 源货币 */}
           <button
-            onClick={swapCurrencies}
-            className="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform hover:bg-blue-700"
+            onClick={() => setShowCurrencyPicker('from')}
+            className="w-full bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between hover:bg-gray-50 transition-colors"
           >
-            <ArrowUpDown className="w-5 h-5" />
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">{currencies.find(c => c.code === fromCurrency)?.flag}</span>
+              <div className="text-left">
+                <div className="font-semibold">{fromCurrency}</div>
+                <div className="text-sm text-gray-500">{currencies.find(c => c.code === fromCurrency)?.name}</div>
+              </div>
+            </div>
+            <MoreHorizontal className="w-5 h-5 text-gray-400" />
+          </button>
+
+          {/* 交换按钮 */}
+          <div className="flex justify-center">
+            <button
+              onClick={swapCurrencies}
+              className="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform hover:bg-blue-700"
+            >
+              <ArrowUpDown className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* 目标货币 */}
+          <button
+            onClick={() => setShowCurrencyPicker('to')}
+            className="w-full bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">{currencies.find(c => c.code === toCurrency)?.flag}</span>
+              <div className="text-left">
+                <div className="font-semibold">{toCurrency}</div>
+                <div className="text-sm text-gray-500">{currencies.find(c => c.code === toCurrency)?.name}</div>
+              </div>
+            </div>
+            <MoreHorizontal className="w-5 h-5 text-gray-400" />
           </button>
         </div>
 
-        {/* 目标货币 */}
-        <button
-          onClick={() => setShowCurrencyPicker('to')}
-          className="w-full bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex items-center justify-between hover:bg-gray-50 transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">{currencies.find(c => c.code === toCurrency)?.flag}</span>
-            <div className="text-left">
-              <div className="font-semibold">{toCurrency}</div>
-              <div className="text-sm text-gray-500">{currencies.find(c => c.code === toCurrency)?.name}</div>
-            </div>
+        {/* 结果显示 */}
+        {convertedAmount && (
+          <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-2xl p-6 border border-green-200">
+            <div className="text-sm text-gray-600 mb-2">转换结果</div>
+            <div className="text-3xl font-bold text-gray-800">{convertedAmount}</div>
+            {exchangeRate && (
+              <div className="text-sm text-gray-500 mt-2">
+                1 {fromCurrency} = {fromCurrency === toCurrency ? '1.000000' : exchangeRate.rate.toFixed(6)} {toCurrency}
+              </div>
+            )}
           </div>
-          <MoreHorizontal className="w-5 h-5 text-gray-400" />
+        )}
+
+        {/* 转换按钮 - 强调手动操作 */}
+        <button
+          onClick={() => performConversion(amount)}
+          disabled={loading || !amount}
+          className="w-full bg-blue-600 text-white py-4 rounded-2xl font-semibold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform disabled:opacity-50 hover:bg-blue-700"
+        >
+          {loading ? (
+            <>
+              <RefreshCw className="w-5 h-5 animate-spin" />
+              计算中...
+            </>
+          ) : (
+            <>
+              <Calculator className="w-5 h-5" />
+              点击计算汇率
+            </>
+          )}
         </button>
       </div>
-
-      {/* 结果显示 */}
-      {convertedAmount && (
-        <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-2xl p-6 border border-green-200">
-          <div className="text-sm text-gray-600 mb-2">转换结果</div>
-          <div className="text-3xl font-bold text-gray-800">{convertedAmount}</div>
-          {exchangeRate && (
-            <div className="text-sm text-gray-500 mt-2">
-              1 {fromCurrency} = {fromCurrency === toCurrency ? '1.000000' : exchangeRate.rate.toFixed(6)} {toCurrency}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* 转换按钮 - 强调手动操作 */}
-      <button
-        onClick={() => performConversion(amount)}
-        disabled={loading || !amount}
-        className="w-full bg-blue-600 text-white py-4 rounded-2xl font-semibold flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-transform disabled:opacity-50 hover:bg-blue-700"
-      >
-        {loading ? (
-          <>
-            <RefreshCw className="w-5 h-5 animate-spin" />
-            计算中...
-          </>
-        ) : (
-          <>
-            <Calculator className="w-5 h-5" />
-            点击计算汇率
-          </>
-        )}
-      </button>
-    </div>
-  )
+    )
+  })
 
   // 汇率标签页 - 美化图表
   const RatesTab = () => {

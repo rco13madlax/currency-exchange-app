@@ -636,7 +636,7 @@ export default function CurrencyExchangeApp() {
     if (amount && !isNaN(parseFloat(amount))) {
       convertCurrency()
     }
-    fetchHistoricalData(fromCurrency, toCurrency)
+    // 移除 fetchHistoricalData 调用，在 RatesTab 组件内部处理
   }, [fromCurrency, toCurrency, amount, convertCurrency])
 
   // 状态栏组件
@@ -930,7 +930,7 @@ export default function CurrencyExchangeApp() {
                       borderRadius: '12px',
                       boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                     }}
-                    formatter={(value: any) => [value?.toFixed(4), '汇率']}
+                    formatter={(value: number) => [value?.toFixed(4), '汇率']}
                     labelFormatter={(label) => `日期: ${label}`}
                   />
                   <Line 
